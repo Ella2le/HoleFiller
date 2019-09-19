@@ -41,6 +41,7 @@ public:
 	vector< Edge* > edges;
 
 	void loadOff(char* fName);
+	void exportOff(char* out);
 	void createCube(float sideLength);
 
 	float distanceBetween(float* a, float* b);

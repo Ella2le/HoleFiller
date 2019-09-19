@@ -51,6 +51,11 @@ void Mesh::loadOff(char* meshFile)
 	cout << "Mesh has " << (int) tris.size() << " tris, " << (int) verts.size() << " verts, " << (int) edges.size() << " edges\nInitialization done\n";
 }
 
+void Mesh::exportOff(char* out)
+{
+	//TODO
+}
+
 int Mesh::addVertex(float* coords)
 {
 	//cout << "adding vertex : " << coords[0] << " " << coords[1] << " " << coords[2] << endl;
