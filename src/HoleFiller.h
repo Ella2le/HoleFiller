@@ -27,7 +27,7 @@ private:
 	float computeWeight(float* coordsV1, float* coordsV2, float* coordsV3);
 	float computeArea(float* coordsV1, float* coordsV2, float* coordsV3);
 	float computeDihedralAngle(float* coordsV1, float* coordsV2, float* coordsV3);
-	void addToMesh( int hole_id , vector<vector<int>> &minimum_weight_index , int begin , int end );
+	void addToMesh(int hole_id, vector< vector<int> > &minimum_weight_index, int begin, int end );
 
 private:
 	vector<HoleVertices *> v_holes;

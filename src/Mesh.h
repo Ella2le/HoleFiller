@@ -40,8 +40,8 @@ public:
 	vector< Vertex* > verts;
 	vector< Edge* > edges;
 
-	void loadOff(char* fName);
-	void exportOff(char* out);
+	void loadOff(const char* fName);
+	void exportOff(const char* out);
 	void createCube(float sideLength);
 
 	float distanceBetween(float* a, float* b);
@@ -55,5 +55,5 @@ public:
 	void addEdge(int a, int b);
 	void removeEdge(int a, int b);
 
-	char* filename; /* new */
+	const char* filename; /* new */
 };

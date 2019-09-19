@@ -8,7 +8,7 @@
 #include <cmath>
 #include <limits>
 
-void Mesh::loadOff(char* meshFile)
+void Mesh::loadOff(const char* meshFile)
 {
 
 	this->filename = meshFile;
@@ -51,7 +51,7 @@ void Mesh::loadOff(char* meshFile)
 	cout << "Mesh has " << (int) tris.size() << " tris, " << (int) verts.size() << " verts, " << (int) edges.size() << " edges\nInitialization done\n";
 }
 
-void Mesh::exportOff(char* out)
+void Mesh::exportOff(const char* out)
 {
 	//TODO
 }
