@@ -23,42 +23,50 @@ void Mesh::loadOff(const char* meshFile)
 	}
 
 	char off[25];
-	fscanf(fPtr, "%s\n", &off); //cout << off << " type file\n";
-	float a, b, c, d;	//for face lines and the 2nd line (that gives # of verts, faces, and edges) casting these to int will suffice
+	fscanf(fPtr, "%s\n", &off);
+	float a, b, c, d; //for face lines and the 2nd line (that gives # of verts, faces, and edges) casting these to int will suffice
 	fscanf(fPtr, "%f %f %f\n", &a, &b, &c);
 	int nVerts = (int) a, v = 0;
-//	minEdgeLen = INF;
-//	maxEdgeLen = -INF;
-//	edgeLenTotal = 0.0f;
-	while (v++ < nVerts) //go till the end of verts coord section
+	//fill vertices
+	while (v++ < nVerts)
 	{
 		fscanf(fPtr, "%f %f %f\n", &a, &b, &c);
 		float* coords = new float[3];
 		coords[0] = a;
 		coords[1] = b;
 		coords[2] = c;
-		addVertex(coords); //ND: no duplicate check
+		addVertex(coords);
 	}
-	//verts ready, time to fill triangles
-	while (fscanf(fPtr, "%f %f %f %f\n", &d, &a, &b, &c) != EOF) //go till the end of file
+	//fill triangles
+	while (fscanf(fPtr, "%f %f %f %f\n", &d, &a, &b, &c) != EOF)
 	{
-		addTriangle((int) a, (int) b, (int) c); //no -1 'cos idxs start from 0 for off files
+		addTriangle((int) a, (int) b, (int) c);
 	}
-
-//	avgEdgeLen = edgeLenTotal / ((int) edges.size());
-//	computeBoundingBox();
 	fclose(fPtr);
 	cout << "Mesh has " << (int) tris.size() << " tris, " << (int) verts.size() << " verts, " << (int) edges.size() << " edges\nInitialization done\n";
 }
 
 void Mesh::exportOff(const char* out)
 {
-	//TODO
+	std::ofstream file(out);
+	cout << "Exporting mesh to " << out << ")..\n";
+	if(!file)
+    {
+        std::cerr << "Cannot open the output file." << std::endl;
+        return;
+    }
+	file << "OFF" << endl;
+	file << this->verts.size() << " " << this->tris.size() << " " << this->edges.size() << endl;
+	for(auto v : this->verts) {
+		file << v->coords[0] << " " << v->coords[1] << " " << v->coords[2] << endl;
+	}
+	for(auto t : this-> tris) {
+		file << "3 " << t->v1i << " " << t->v2i << " " << t->v3i << endl;
+	}
 }
 
 int Mesh::addVertex(float* coords)
 {
-	//cout << "adding vertex : " << coords[0] << " " << coords[1] << " " << coords[2] << endl;
 	int idx;
 	if (verts.size() == 0)
 		idx = 0;
