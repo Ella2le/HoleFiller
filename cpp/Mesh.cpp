@@ -101,13 +101,12 @@ void Mesh::addTriangle(int v1i, int v2i, int v3i)
 }
 
 bool Mesh::triangleExists(int v1i, int v2i, int v3i) {
-	int idx = -1;
 	for (int i = 0; i < tris.size(); i++) {
 		if (tris[i]->v1i == v1i && tris[i]->v2i == v2i && tris[i]->v3i == v3i) {
-			idx = tris[i]->idx;
+			return true;
 		}
 	}
-	return idx != -1;
+	return false;
 }
 
 void Mesh::removeTriangle(int v1i, int v2i, int v3i)
@@ -117,6 +116,7 @@ void Mesh::removeTriangle(int v1i, int v2i, int v3i)
 		if (tris[i]->v1i == v1i && tris[i]->v2i == v2i && tris[i]->v3i == v3i) {
 			idx = tris[i]->idx;
 			tris.erase(tris.begin() + i);
+			break;
 		}
 	}
 
@@ -152,7 +152,7 @@ void Mesh::removeTriangle(int v1i, int v2i, int v3i)
 }
 
 void Mesh::splitTriangle(int idx) {
-	Triangle *tri = tris[10];
+	Triangle *tri = tris[idx];
 
 	float coord_centroid[3] = {
 		(verts[tri->v1i]->coords[0] + verts[tri->v2i]->coords[0] + verts[tri->v3i]->coords[0]) / 3,

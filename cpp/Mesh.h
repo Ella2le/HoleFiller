@@ -55,5 +55,5 @@ public:
 	void addEdge(int a, int b);
 	void removeEdge(int a, int b);
 
-	const char* filename; /* new */
+	const char* filename;
 };

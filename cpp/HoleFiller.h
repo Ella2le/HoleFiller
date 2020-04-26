@@ -24,9 +24,9 @@ private:
 	bool isChecked(Edge *edge);
 
 	//trianglulateHoles
-	float computeWeight(float* coordsV1, float* coordsV2, float* coordsV3);
+	pair<float, float> computeWeight(Vertex *v1, Vertex *v2, Vertex *v3);
 	float computeArea(float* coordsV1, float* coordsV2, float* coordsV3);
-	float computeDihedralAngle(float* coordsV1, float* coordsV2, float* coordsV3);
+	float maxDihedralAngle(Vertex *v1, Vertex *v2, Vertex *v3);
 	void addToMesh(int hole_id, vector< vector<int> > &minimum_weight_index, int begin, int end );
 
 private:

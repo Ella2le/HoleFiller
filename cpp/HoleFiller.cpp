@@ -1,5 +1,10 @@
 #include "HoleFiller.h"
 
+#include <set>
+#include <iterator>
+#include <limits>
+#include <tuple>
+
 HoleFiller::HoleFiller(Mesh & m)
 {
 	mesh = &m;
@@ -24,10 +29,12 @@ void HoleFiller::fillHoles()
 
 	trianglulateHoles();
 
+	
 	for (int i = 0; i<t_holes.size(); i++) {
 		cout << "refining hole: " << i << "..." << endl;
 		HoleTriangles ht = *t_holes[i];
 		for (int k = 0; k<ht.size(); k++) {
+			// TODO refine does not work!
 			refine(ht[k]->v1i, ht[k]->v2i, ht[k]->v3i);
 		}
 	}
@@ -62,7 +69,7 @@ void HoleFiller::identifyHoles()
 							current_vertex = (v1 == current_vertex) ? v2 : v1;
 							break;
 						}
-					}					
+					}
 				}
 			}while(mesh->edges[i]->idx != current_edge->idx);
 
@@ -74,47 +81,49 @@ void HoleFiller::identifyHoles()
 
 void HoleFiller::trianglulateHoles()
 {
-	for(int hole_id = 0 ; hole_id < v_holes.size() ; hole_id++)
+	for(int hole_id = 0; hole_id < v_holes.size(); hole_id++)
 	{
-	
 		cout << "triangulating hole: " << hole_id << "..." << endl;
 
 		HoleVertices holeVertices = *v_holes[hole_id];
 		int size = holeVertices.size();
 
-		// size x size boyutunda içi 0 dolu matris yarattýk
-		vector<vector<float>> minimum_weight(size , vector<float>(size , 0));
+		vector<vector<pair<float, float>>> minimum_weight(size, vector<pair<float, float>>(size , {0, 0} ));
 		vector<vector<int>> minimum_weight_index(size , vector<int>(size , -1));
 		for(int j = 2 ; j < size ; j++)
 		{
 			for(int i = 0 ; i < size - j ; i++)
 			{
-				float min = FLT_MAX;
+				pair<float, float> min = {FLT_MAX, FLT_MAX};
 				int index = -1;
 				int k = i + j;
 
 				for(int m = i + 1 ; m < k ; m++)
 				{
-					float val = minimum_weight[i][m] + minimum_weight[m][k] + computeArea(holeVertices[i]->coords, holeVertices[m]->coords, holeVertices[k]->coords);
-					if( val < min )
+					pair<float, float> w = computeWeight(holeVertices[i], holeVertices[m], holeVertices[j]);
+					pair<float, float> val = { minimum_weight[i][m].first + minimum_weight[m][j].first +  w.first,
+						minimum_weight[i][m].second + minimum_weight[m][j].second +  w.second};
+					if( val.first < min.first || (val.first == min.first && val.second < min.second))
 					{
 						min = val;
 						index = m;
 					}
 				}
-				minimum_weight[i][k] = min;
-				minimum_weight_index[i][k] = index;
+				minimum_weight[i][j] = min;
+				minimum_weight_index[i][j] = index;
 			}
 		}
 
-		addToMesh(hole_id , minimum_weight_index , 0 , size -1 );
+		addToMesh(hole_id, minimum_weight_index, 0, size - 1);
 	}
 }
 
-void HoleFiller::refine(int idx1 , int idx2 ,int idx3)
+void HoleFiller::refine(int idx1, int idx2, int idx3)
 {
-	if (!mesh->triangleExists(idx1, idx2, idx3))
+	if (!mesh->triangleExists(idx1, idx2, idx3)) {
+		cout << "triangle does not exist: " << idx1 << " " << idx2 << " " << idx3 << endl;
 		return;
+	}
 
 	Vertex *v1 =  mesh->verts[idx1];
 	Vertex *v2 =  mesh->verts[idx2];
@@ -133,25 +142,27 @@ void HoleFiller::refine(int idx1 , int idx2 ,int idx3)
 
 	for(int j = 0 ; j < v1->edgeList.size() ; j++)
 	{
-		sigma_vertices[0] += mesh->edges[v1->edgeList[j]]->length;
+		if(mesh->edges.size() >= v1->edgeList[j] && mesh->edges[v1->edgeList[j]] != NULL) {
+			sigma_vertices[0] += mesh->edges[v1->edgeList[j]]->length;
+		}
 	}
 	sigma_vertices[0] /= v1->edgeList.size();
 
-
 	for(int j = 0 ; j < v2->edgeList.size() ; j++)
 	{
-		sigma_vertices[1] += mesh->edges[v2->edgeList[j]]->length;
+		if(mesh->edges.size() >= v2->edgeList[j] && mesh->edges[v2->edgeList[j]] != NULL) {
+			sigma_vertices[1] += mesh->edges[v2->edgeList[j]]->length;
+		}
 	}
 	sigma_vertices[1] /= v2->edgeList.size();
 
-
 	for(int j = 0 ; j < v3->edgeList.size() ; j++)
 	{
-		sigma_vertices[2] += mesh->edges[v3->edgeList[j]]->length;
+		if(mesh->edges.size() >= v3->edgeList[j] && mesh->edges[v3->edgeList[j]] != NULL) {
+			sigma_vertices[2] += mesh->edges[v3->edgeList[j]]->length;
+		}
 	}
 	sigma_vertices[2] /= v3->edgeList.size();
-
-
 	sigma_centroid = (sigma_vertices[2] + sigma_vertices[1] + sigma_vertices[0])/3;
 
 	
@@ -217,27 +228,70 @@ float HoleFiller::computeArea(float* coordsV1, float* coordsV2, float* coordsV3)
 }
 
 
-float HoleFiller::computeDihedralAngle(float* coordsV1, float* coordsV2, float* coordsV3)
+float* planarEquation(float* v1, float *v2, float *v3)
 {
-	return 0.0;
+	// planar equation of our triangle
+	float vector_v1_v2[3] = {v2[0] - v1[0], v2[1] - v1[1], v2[2] - v1[2]};
+	float vector_v1_v3[3] = {v3[0] - v1[0], v3[1] - v1[1], v3[2] - v1[2]};
+
+	// cross product => A*i + B*j + C*k
+	float A = vector_v1_v2[1]*vector_v1_v3[2] - vector_v1_v2[2]*vector_v1_v3[1];
+	float B = vector_v1_v2[1]*vector_v1_v3[2] - vector_v1_v2[2]*vector_v1_v3[1];
+	float C = vector_v1_v2[0]*vector_v1_v3[1] - vector_v1_v2[1]*vector_v1_v3[0];
+
+	// Planar equation => A(x-v1[0]) + B(y-v1[1]) + C(z-v1[2]) = 0
+	return new float[3] {A, B, C};
+}
+
+// Dihedral angle between two planes.
+// p = [A, B, C] where Ax + By + Cz = D
+float dihedralAngle(float* p1, float* p2) {
+	return acos((p1[0] * p2[0] + p1[2] * p2[2] + p1[2] * p2[2]) / 
+		(sqrt(p1[0]*p1[0] + p1[1]*p1[1] + p1[2]*p1[2]) * sqrt(p2[0]*p2[0] + p2[1]*p2[1] + p2[2]*p2[2])));
+}
+
+float HoleFiller::maxDihedralAngle(Vertex* v1, Vertex* v2, Vertex* v3)
+{
+	// TODO max. dihedral angle between (v1, v2, v3) and existing adjacent triangles
+	// collect all adjacent triangles
+	set<int> adjacentTriangles;
+	for(auto v : {v1, v2, v3}) {
+		std::copy(v->triList.begin(), v->triList.end(), std::inserter(adjacentTriangles, adjacentTriangles.end()));
+	}
+	auto eq = planarEquation(v1->coords, v2->coords, v3->coords);
+	auto maxDihedral = std::numeric_limits<float>::lowest();
+	for (auto tri : adjacentTriangles) {
+		auto t = mesh->tris[tri];
+		auto eq2 = planarEquation(mesh->verts[t->v1i]->coords, mesh->verts[t->v1i]->coords, mesh->verts[t->v1i]->coords);
+		maxDihedral = dihedralAngle(eq, eq2);
+	}
+	return maxDihedral;
+}
+
+pair<float, float> HoleFiller::computeWeight(Vertex* v1, Vertex* v2, Vertex* v3)
+{
+	return make_pair(maxDihedralAngle(v1, v2, v3), computeArea(v1->coords, v2->coords, v3->coords));
 }
 
 
-float HoleFiller::computeWeight(float* coordsV1, float* coordsV2, float* coordsV3)
+
+void HoleFiller::addToMesh(int hole_id, vector<vector<int>> &minimum_weight_index, int begin, int end)
 {
-	return computeDihedralAngle(coordsV1, coordsV2, coordsV3) + computeArea(coordsV1, coordsV2, coordsV3);
-}
-
-
-
-void HoleFiller::addToMesh( int hole_id , vector<vector<int>> &minimum_weight_index , int begin , int end  )
-{
+	cout << "addToMesh " <<  hole_id << " " << minimum_weight_index.size() << " " << begin << " " << end << endl;
+	for(auto x : minimum_weight_index) {
+		for(auto y : x) {
+			cout << y << " ";
+		}
+		cout << endl;
+	}
 	if(end - begin > 1)
 	{
 		HoleVertices holeVertices = *v_holes[hole_id];
 		int current = minimum_weight_index[begin][end];
+		cout << "current " <<  current << " " << holeVertices.size() << endl;
+		cout << "add triangle " <<  holeVertices[begin]->idx << " " << holeVertices[current]->idx << " " << holeVertices[end]->idx << endl;
 
-		mesh->addTriangle(holeVertices[begin]->idx , holeVertices[current]->idx , holeVertices[end]->idx);
+		mesh->addTriangle(holeVertices[begin]->idx, holeVertices[current]->idx, holeVertices[end]->idx);
 		(*t_holes[hole_id]).push_back(mesh->tris[mesh->tris.size()-1]);
 
 		addToMesh( hole_id , minimum_weight_index , begin , current );
